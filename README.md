@@ -27,6 +27,18 @@ Install the Python package directly from GitHub:
 python -m pip install "git+https://github.com/FahrenheitResearch/goes-abi"
 ```
 
+Install from PyPI:
+
+```powershell
+python -m pip install goes-abi
+```
+
+Install the optional MCP server for Claude Desktop, Codex, and other MCP clients:
+
+```powershell
+python -m pip install "goes-abi[mcp]"
+```
+
 From a local checkout:
 
 ```powershell
@@ -128,6 +140,36 @@ report = goes_abi.render_satellite(
 
 print(report["artifacts"][0]["png_path"])
 ```
+
+## MCP Server
+
+`goes-abi` includes an optional stdio MCP server. It exposes tools for capabilities, native PNG rendering, native sequence rendering, XYZ tile generation from local ABI channel files, and a `take_a_break_wallpaper` tool that renders a 5120x1440 full-disk GOES wallpaper.
+
+Use this command in MCP clients:
+
+```powershell
+goes-abi-mcp
+```
+
+Equivalent module form:
+
+```powershell
+python -m goes_abi.mcp_server
+```
+
+Example MCP server config:
+
+```json
+{
+  "mcpServers": {
+    "goes-abi": {
+      "command": "goes-abi-mcp"
+    }
+  }
+}
+```
+
+The wallpaper tool defaults to `goes_airmass_rgb` because it uses 2 km full-disk channels and is practical for agents to run on demand. For visible full-disk GeoColor, call it with `product="goes_geocolor"` and `allow_high_resolution_full_disk=true`; that path downloads and renders high-resolution visible channels and can take substantially more memory and time.
 
 ## Outputs
 
