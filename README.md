@@ -15,7 +15,19 @@ This package is for people who want the GOES satellite rendering pieces without 
 
 ## Install
 
-From a checkout:
+Install the Rust CLI directly from GitHub:
+
+```powershell
+cargo install --git https://github.com/FahrenheitResearch/goes19
+```
+
+Install the Python package directly from GitHub:
+
+```powershell
+python -m pip install "git+https://github.com/FahrenheitResearch/goes19"
+```
+
+From a local checkout:
 
 ```powershell
 cargo install --path .
