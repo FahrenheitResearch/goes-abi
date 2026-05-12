@@ -1,6 +1,6 @@
 [package]
 name = "goes-abi"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
@@ -23,7 +23,7 @@ python = ["dep:pyo3"]
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 clap = { version = "4.5", features = ["derive"] }
 image = { version = "0.25", default-features = false, features = ["gif", "png"] }
-pyo3 = { version = "0.23", features = ["extension-module"], optional = true }
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py39"], optional = true }
 rayon = "1"
 rustls = { version = "0.23", default-features = false, features = ["std"] }
 rustls-rustcrypto = "0.0.2-alpha"
