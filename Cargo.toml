@@ -1,0 +1,37 @@
+[package]
+name = "goes19"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Standalone all-Rust GOES ABI renderer, tiler, and Python package"
+repository = "https://github.com/FahrenheitResearch/goes19"
+
+[lib]
+name = "_goes19"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "goes19"
+path = "src/bin/goes19.rs"
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
+clap = { version = "4.5", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["gif", "png"] }
+pyo3 = { version = "0.23", features = ["extension-module"], optional = true }
+rayon = "1"
+rustls = { version = "0.23", default-features = false, features = ["std"] }
+rustls-rustcrypto = "0.0.2-alpha"
+rustyhdf5 = "1.93"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "3", default-features = false, features = ["rustls-no-provider", "rustls-webpki-roots"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
