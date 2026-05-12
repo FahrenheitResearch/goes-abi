@@ -10,6 +10,7 @@ This package is for people who want the GOES satellite rendering pieces without 
 - Native fixed-grid PNG renders for ABI bands and RGB products.
 - Native crop/sequence rendering for workflow-friendly regional loops.
 - XYZ Web Mercator tile generation from local ABI channel files.
+- VIIRS active-fire detection ingest through NASA FIRMS CSV/API.
 - Python bindings through `maturin` and a `goes_abi` Python module.
 - No `rustwx` checkout, vendored dependency tree, C NetCDF, C HDF5, or Python geospatial stack required.
 
@@ -117,6 +118,30 @@ goes-abi web-tiles `
   --max-zoom 6
 ```
 
+Fetch recent VIIRS active-fire detections from NASA FIRMS and write JSON plus GeoJSON:
+
+```powershell
+$env:FIRMS_MAP_KEY = "your_firms_map_key"
+goes-abi viirs-fires `
+  --source VIIRS_NOAA20_NRT `
+  --west -127 `
+  --east -111 `
+  --south 30 `
+  --north 44.5 `
+  --day-range 1 `
+  --min-confidence nominal `
+  --out-dir out
+```
+
+Parse an existing FIRMS CSV without using a map key:
+
+```powershell
+goes-abi viirs-fires `
+  --csv-path fires.csv `
+  --min-frp 10 `
+  --out-dir out
+```
+
 ## Python Example
 
 ```python
@@ -141,9 +166,26 @@ report = goes_abi.render_satellite(
 print(report["artifacts"][0]["png_path"])
 ```
 
+Fetch VIIRS active-fire detections:
+
+```python
+import goes_abi
+
+report = goes_abi.viirs_fires(
+    source="VIIRS_NOAA20_NRT",
+    bounds=(-127.0, -111.0, 30.0, 44.5),
+    day_range=1,
+    min_confidence="nominal",
+    out_dir="out",
+)
+
+print(report["detection_count"])
+print(report["geojson_path"])
+```
+
 ## MCP Server
 
-`goes-abi` includes an optional stdio MCP server. It exposes tools for capabilities, native PNG rendering, native sequence rendering, XYZ tile generation from local ABI channel files, and a `take_a_break_wallpaper` tool that renders a 5120x1440 full-disk GOES wallpaper.
+`goes-abi` includes an optional stdio MCP server. It exposes tools for capabilities, native PNG rendering, native sequence rendering, XYZ tile generation from local ABI channel files, VIIRS active-fire detection ingest, and a `take_a_break_wallpaper` tool that renders a 5120x1440 full-disk GOES wallpaper.
 
 Use this command in MCP clients:
 
@@ -171,9 +213,33 @@ Example MCP server config:
 
 The wallpaper tool defaults to `goes_airmass_rgb` because it uses 2 km full-disk channels and is practical for agents to run on demand. For visible full-disk GeoColor, call it with `product="goes_geocolor"` and `allow_high_resolution_full_disk=true`; that path downloads and renders high-resolution visible channels and can take substantially more memory and time.
 
+## VIIRS Fires
+
+The VIIRS fire path uses NASA FIRMS active-fire CSV records from NOAA-20, NOAA-21, or Suomi-NPP VIIRS sources. It can fetch from the FIRMS Area API with a map key or parse a local FIRMS CSV. The output report preserves fire point metadata including latitude, longitude, brightness temperatures, scan/track size, acquisition date/time, satellite, instrument, confidence, version, FRP, day/night flag, and the original CSV row. When `out_dir` is provided it also writes GeoJSON for map overlays.
+
+FIRMS Area API reference: <https://firms.modaps.eosdis.nasa.gov/api/area/csv>
+
+Supported FIRMS VIIRS sources:
+
+```text
+VIIRS_NOAA20_NRT
+VIIRS_NOAA20_SP
+VIIRS_NOAA21_NRT
+VIIRS_SNPP_NRT
+VIIRS_SNPP_SP
+```
+
+Set one of these environment variables instead of passing `--map-key`:
+
+```powershell
+$env:FIRMS_MAP_KEY = "your_firms_map_key"
+$env:NASA_FIRMS_MAP_KEY = "your_firms_map_key"
+$env:GOES_ABI_FIRMS_MAP_KEY = "your_firms_map_key"
+```
+
 ## Outputs
 
-Every render writes a JSON report next to the PNG/tile output. Reports include scan time, source NOAA S3 keys/URLs, local cache paths, render timing, product metadata, geographic bounds, and generated artifact paths.
+Every render or data ingest writes a JSON report next to the PNG/tile/vector output. GOES reports include scan time, source NOAA S3 keys/URLs, local cache paths, render timing, product metadata, geographic bounds, and generated artifact paths. VIIRS reports include FIRMS source metadata, filters, fire-detection summaries, detections, and optional GeoJSON paths.
 
 ## Development Checks
 

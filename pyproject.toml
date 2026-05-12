@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "goes-abi"
-version = "0.1.2"
+version = "0.2.0"
 description = "Standalone all-Rust GOES ABI renderer, tiler, and Python bindings"
 readme = "README.md"
 requires-python = ">=3.9"

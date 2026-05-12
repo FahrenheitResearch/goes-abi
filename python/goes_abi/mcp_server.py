@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import capabilities, render_native_sequence, render_satellite, render_web_tiles
+from . import capabilities, render_native_sequence, render_satellite, render_web_tiles, viirs_fires
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -145,6 +145,37 @@ def build_server() -> Any:
             opaque_clouds=opaque_clouds,
             base_url=base_url,
             png_compression="fast",
+        )
+
+    @mcp.tool()
+    def viirs_active_fires(
+        source: str = "VIIRS_NOAA20_NRT",
+        map_key: Optional[str] = None,
+        csv_path: Optional[str] = None,
+        bounds: Optional[List[float]] = None,
+        world: bool = False,
+        day_range: int = 1,
+        date: Optional[str] = None,
+        out_dir: Optional[str] = None,
+        min_confidence: Optional[str] = None,
+        min_frp: Optional[float] = None,
+        limit: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Fetch or parse VIIRS active-fire detections through NASA FIRMS CSV."""
+
+        return viirs_fires(
+            source=source,
+            map_key=map_key,
+            csv_path=csv_path,
+            bounds=_coerce_bounds(bounds, _default_bounds_for_sector("conus")),
+            world=world,
+            day_range=day_range,
+            date=date,
+            out_dir=out_dir or str(_default_output_dir("goes-abi-viirs-fires")),
+            write_geojson=True,
+            min_confidence=min_confidence,
+            min_frp=min_frp,
+            limit=limit,
         )
 
     @mcp.tool()

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from . import capabilities, render_native_sequence, render_satellite, render_web_tiles
+from . import capabilities, render_native_sequence, render_satellite, render_web_tiles, viirs_fires
 
 
 def main() -> None:
@@ -45,6 +45,20 @@ def main() -> None:
     tiles.add_argument("--opaque-clouds", action="store_true")
     tiles.add_argument("--base-url")
 
+    fires = sub.add_parser("viirs-fires")
+    fires.add_argument("--source", default="VIIRS_NOAA20_NRT")
+    fires.add_argument("--map-key")
+    fires.add_argument("--csv-path", type=Path)
+    fires.add_argument("--bounds", default="-127,-111,30,44.5")
+    fires.add_argument("--world", action="store_true")
+    fires.add_argument("--day-range", type=int, default=1)
+    fires.add_argument("--date")
+    fires.add_argument("--out-dir", type=Path)
+    fires.add_argument("--no-geojson", action="store_true")
+    fires.add_argument("--min-confidence")
+    fires.add_argument("--min-frp", type=float)
+    fires.add_argument("--limit", type=int)
+
     args = parser.parse_args()
     if args.command == "capabilities":
         result: dict[str, Any] = capabilities()
@@ -83,7 +97,7 @@ def main() -> None:
             max_height=args.max_height,
             png_compression="fast",
         )
-    else:
+    elif args.command == "web-tiles":
         result = render_web_tiles(
             channel1=args.channel1,
             channel2=args.channel2,
@@ -100,6 +114,21 @@ def main() -> None:
             opaque_clouds=args.opaque_clouds,
             base_url=args.base_url,
             png_compression="fast",
+        )
+    else:
+        result = viirs_fires(
+            source=args.source,
+            map_key=args.map_key,
+            csv_path=args.csv_path,
+            bounds=_parse_bounds(args.bounds),
+            world=args.world,
+            day_range=args.day_range,
+            date=args.date,
+            out_dir=args.out_dir,
+            write_geojson=not args.no_geojson,
+            min_confidence=args.min_confidence,
+            min_frp=args.min_frp,
+            limit=args.limit,
         )
     print(json.dumps(result, indent=2))
 

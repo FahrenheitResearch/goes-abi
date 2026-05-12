@@ -1,9 +1,9 @@
 use _goes_abi::{
     GoesNativeSequenceRequest, GoesSatelliteBatchRequest, GoesWebTilesRequest, PngCompressionMode,
-    capabilities_json, run_goes_native_sequence, run_goes_satellite_batch, run_goes_web_tiles,
-    web_tiles::GoesWebTileLayerMode,
+    ViirsFireRequest, capabilities_json, run_goes_native_sequence, run_goes_satellite_batch,
+    run_goes_web_tiles, run_viirs_fire_detection, web_tiles::GoesWebTileLayerMode,
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
@@ -27,6 +27,8 @@ enum Commands {
     NativeSequence(NativeSequenceArgs),
     /// Render transparent XYZ Web Mercator tiles from local GOES ABI C01/C02/C03 files.
     WebTiles(WebTilesArgs),
+    /// Fetch or parse VIIRS active-fire detections through NASA FIRMS CSV.
+    ViirsFires(ViirsFiresArgs),
 }
 
 #[derive(Debug, Args)]
@@ -177,6 +179,46 @@ struct WebTilesArgs {
     png_compression: PngCompressionArg,
 }
 
+#[derive(Debug, Args)]
+struct ViirsFiresArgs {
+    #[arg(long, default_value = "VIIRS_NOAA20_NRT")]
+    source: String,
+    #[arg(
+        long,
+        help = "NASA FIRMS map key; defaults to FIRMS_MAP_KEY/NASA_FIRMS_MAP_KEY/GOES_ABI_FIRMS_MAP_KEY"
+    )]
+    map_key: Option<String>,
+    #[arg(
+        long,
+        help = "Parse an existing FIRMS CSV instead of fetching from NASA FIRMS"
+    )]
+    csv_path: Option<PathBuf>,
+    #[arg(long, default_value_t = -127.0)]
+    west: f64,
+    #[arg(long, default_value_t = -111.0)]
+    east: f64,
+    #[arg(long, default_value_t = 30.0)]
+    south: f64,
+    #[arg(long, default_value_t = 44.5)]
+    north: f64,
+    #[arg(long, help = "Request FIRMS world area instead of the bounding box")]
+    world: bool,
+    #[arg(long, default_value_t = 1)]
+    day_range: u8,
+    #[arg(long, help = "Optional FIRMS start date in YYYY-MM-DD")]
+    date: Option<String>,
+    #[arg(long)]
+    out_dir: Option<PathBuf>,
+    #[arg(long)]
+    no_geojson: bool,
+    #[arg(long)]
+    min_confidence: Option<String>,
+    #[arg(long)]
+    min_frp: Option<f64>,
+    #[arg(long)]
+    limit: Option<usize>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum PngCompressionArg {
     Default,
@@ -303,6 +345,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 serde_json::to_string_pretty(&run_goes_web_tiles(&request)?)?
             );
         }
+        Commands::ViirsFires(args) => {
+            let request = ViirsFireRequest {
+                source: args.source,
+                map_key: args.map_key,
+                csv_path: args.csv_path,
+                csv_text: None,
+                bounds: (args.west, args.east, args.south, args.north),
+                world: args.world,
+                day_range: args.day_range,
+                date: parse_optional_date(args.date.as_deref())?,
+                out_dir: args.out_dir,
+                write_geojson: !args.no_geojson,
+                min_confidence: args.min_confidence,
+                min_frp: args.min_frp,
+                limit: args.limit,
+            };
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&run_viirs_fire_detection(&request)?)?
+            );
+        }
     }
     Ok(())
 }
@@ -316,4 +379,9 @@ fn parse_optional_time(
             .map_err(|err| err.into())
     })
     .transpose()
+}
+
+fn parse_optional_date(raw: Option<&str>) -> Result<Option<NaiveDate>, Box<dyn std::error::Error>> {
+    raw.map(|value| NaiveDate::parse_from_str(value, "%Y-%m-%d").map_err(|err| err.into()))
+        .transpose()
 }
